@@ -19,7 +19,8 @@ sealed class Screen(val route: String) {
     object AlphabetIdentification : Screen("alphabet_identification")
     object Phrases : Screen("phrases")
     object Profile : Screen("profile")
-    object Flashcards : Screen("flashcards") // 1. Added new Screen object
+    object Flashcards : Screen("flashcards")
+    object Proverbs : Screen("proverbs")
 }
 
 @Composable
@@ -54,6 +55,7 @@ fun KaagadaNavGraph(
                 }
             )
         }
+
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -68,6 +70,7 @@ fun KaagadaNavGraph(
                 }
             )
         }
+
         composable(Screen.Signup.route) {
             SignupScreen(
                 onSignupSuccess = {
@@ -82,12 +85,14 @@ fun KaagadaNavGraph(
                 }
             )
         }
+
         composable(Screen.Home.route) {
             HomeScreen(
                 onLearnAlphabets = { navController.navigate(Screen.AlphabetLearning.route) },
                 onIdentifyAlphabets = { navController.navigate(Screen.AlphabetIdentification.route) },
                 onPhrases = { navController.navigate(Screen.Phrases.route) },
-                onFlashcards = { navController.navigate(Screen.Flashcards.route) }, // 2. Linked the action
+                onFlashcards = { navController.navigate(Screen.Flashcards.route) },
+                onProverbs = { navController.navigate(Screen.Proverbs.route) },
                 onProfile = { navController.navigate(Screen.Profile.route) },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
@@ -96,15 +101,19 @@ fun KaagadaNavGraph(
                 }
             )
         }
+
         composable(Screen.AlphabetLearning.route) {
             AlphabetLearningScreen(onBack = { navController.popBackStack() })
         }
+
         composable(Screen.AlphabetIdentification.route) {
             AlphabetIdentificationScreen(onBack = { navController.popBackStack() })
         }
+
         composable(Screen.Phrases.route) {
             PhrasesScreen(onBack = { navController.popBackStack() })
         }
+
         composable(Screen.Profile.route) {
             ProfileScreen(
                 onBack = { navController.popBackStack() },
@@ -115,9 +124,13 @@ fun KaagadaNavGraph(
                 }
             )
         }
-        // 3. Added the Flashcards destination
+
         composable(Screen.Flashcards.route) {
             FlashcardScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Proverbs.route) {
+            ProverbsScreen(onBack = { navController.popBackStack() })
         }
     }
 }

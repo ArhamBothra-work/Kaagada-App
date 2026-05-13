@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "365164021087",
+    "project_id": "kaagada-app-3054d",
+    "storage_bucket": "kaagada-app-3054d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:365164021087:android:bf42cd32aa8b0c9e4522ea",
+        "android_client_info": {
+          "package_name": "com.example.kaagada"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHQsVehR98uQDlwEXsz9eWFe-QPEz8LWU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

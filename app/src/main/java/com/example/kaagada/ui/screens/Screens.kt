@@ -1,20 +1,11 @@
 package com.example.kaagada.ui.screens
 
 import android.speech.tts.TextToSpeech
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,22 +18,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.*
+
+// --- CRITICAL PROJECT IMPORTS ---
+import com.example.kaagada.R
 import com.example.kaagada.data.model.AlphabetProvider
 import com.example.kaagada.data.model.KannadaAlphabet
-import com.example.kaagada.ui.theme.KaagadaRed
-import com.example.kaagada.ui.theme.KaagadaYellow
-import com.example.kaagada.ui.theme.White
-import com.example.kaagada.ui.theme.Black
+import com.example.kaagada.data.model.Proverb            // Added
+import com.example.kaagada.data.remote.RetrofitClient     // Added
+import com.example.kaagada.ui.adapter.ProverbAdapter      // Added
+import com.example.kaagada.ui.theme.*
 import com.example.kaagada.ui.viewmodel.AuthViewModel
-import java.util.*
-import androidx.compose.foundation.clickable
+
+// --- LEGACY UI IMPORTS ---
+import androidx.compose.ui.viewinterop.AndroidView
+import android.view.LayoutInflater
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.launch
 
 @Composable
 fun OnboardingScreen(
@@ -136,7 +133,7 @@ fun LoginScreen(
     onSignupClick: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
-    var username by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") } // Note: Firebase treats this as email
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -181,7 +178,7 @@ fun LoginScreen(
             TextField(
                 value = username,
                 onValueChange = { username = it },
-                placeholder = { Text("username", color = Black.copy(alpha = 0.5f)) },
+                placeholder = { Text("email", color = Black.copy(alpha = 0.5f)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = TextFieldDefaults.colors(
@@ -234,11 +231,11 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    if (viewModel.login(username, password)) {
-                        onLoginSuccess()
-                    } else {
-                        error = "Invalid credentials"
-                    }
+                    // NEW FIREBASE LOGIC
+                    viewModel.login(username, password,
+                        onSuccess = { onLoginSuccess() },
+                        onError = { error = it }
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = KaagadaYellow,
@@ -287,7 +284,8 @@ fun SignupScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -405,11 +403,11 @@ fun SignupScreen(
 
             Button(
                 onClick = {
-                    if (viewModel.signup(username, password, email, phone)) {
-                        onSignupSuccess()
-                    } else {
-                        error = "Please fill all fields"
-                    }
+                    // NEW FIREBASE LOGIC
+                    viewModel.signup(username, email, phone, password,
+                        onSuccess = { onSignupSuccess() },
+                        onError = { error = it }
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = KaagadaYellow,
@@ -446,11 +444,11 @@ fun HomeScreen(
     onIdentifyAlphabets: () -> Unit,
     onPhrases: () -> Unit,
     onFlashcards: () -> Unit,
+    onProverbs: () -> Unit, // Added Parameter to fix NavGraph!
     onProfile: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
-    // Add scroll state so the screen can swipe up/down
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -475,12 +473,10 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(KaagadaRed)
-                // This makes the entire dashboard scrollable
                 .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header/Banner Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -529,45 +525,21 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Module 1
-            HomeCard(
-                title = "Learn Alphabets",
-                subtitle = "Master the vowels and consonants",
-                icon = Icons.Default.School,
-                onClick = onLearnAlphabets
-            )
-
+            HomeCard(title = "Learn Alphabets", subtitle = "Master the vowels and consonants", icon = Icons.Default.School, onClick = onLearnAlphabets)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Module 2
-            HomeCard(
-                title = "Identify Characters",
-                subtitle = "Practice and Quiz",
-                icon = Icons.Default.Quiz,
-                onClick = onIdentifyAlphabets
-            )
-
+            HomeCard(title = "Identify Characters", subtitle = "Practice and Quiz", icon = Icons.Default.Quiz, onClick = onIdentifyAlphabets)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Module 3
-            HomeCard(
-                title = "Basic Phrases",
-                subtitle = "Common daily conversations",
-                icon = Icons.Default.RecordVoiceOver,
-                onClick = onPhrases
-            )
-
+            HomeCard(title = "Basic Phrases", subtitle = "Common daily conversations", icon = Icons.Default.RecordVoiceOver, onClick = onPhrases)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Module 4 (New)
-            HomeCard(
-                title = "Flashcards",
-                subtitle = "Quick memory test",
-                icon = Icons.Default.Style,
-                onClick = onFlashcards
-            )
+            HomeCard(title = "Flashcards", subtitle = "Quick memory test", icon = Icons.Default.Style, onClick = onFlashcards)
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Bottom spacer to ensure the last card has breathing room
+            // NEW: Proverbs Legacy Demo Button
+            HomeCard(title = "Kannada Proverbs", subtitle = "API & RecyclerView Demo", icon = Icons.Default.List, onClick = onProverbs)
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -1397,5 +1369,62 @@ fun FlashcardScreen(onBack: () -> Unit) {
                 Text("Next Card", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProverbsScreen(onBack: () -> Unit) {
+    var proverbs by remember { mutableStateOf(listOf<Proverb>()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val response = RetrofitClient.instance.getProverbs()
+                proverbs = response
+            } catch (e: Exception) {
+                proverbs = listOf(
+                    Proverb("ಕೈ ಕೆಸರಾದರೆ ಬಾಯಿ ಮೊಸರು"),
+                    Proverb("ದೇಶ ಸುತ್ತು ಕೋಶ ಓದು"),
+                    Proverb("ತಾಳಿದವನು ಬಾಳಿಯಾನು")
+                )
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Kannada Proverbs", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = KaagadaRed,
+                    titleContentColor = KaagadaYellow,
+                    navigationIconContentColor = KaagadaYellow
+                )
+            )
+        }
+    ) { padding ->
+        AndroidView(
+            factory = { context ->
+                val view = LayoutInflater.from(context).inflate(R.layout.activity_proverbs_list, null)
+                val recyclerView = view.findViewById<RecyclerView>(R.id.proverbsRecyclerView)
+                recyclerView.layoutManager = LinearLayoutManager(context)
+                recyclerView.adapter = ProverbAdapter(proverbs)
+                view
+            },
+            update = { view ->
+                val recyclerView = view.findViewById<RecyclerView>(R.id.proverbsRecyclerView)
+                recyclerView.adapter = ProverbAdapter(proverbs)
+            },
+            modifier = Modifier.padding(padding).fillMaxSize()
+        )
     }
 }
